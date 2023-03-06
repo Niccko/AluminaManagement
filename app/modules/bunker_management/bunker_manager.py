@@ -1,17 +1,22 @@
 from db import get_session
-from sqlmodel import Session, select, insert
+from sqlmodel import Session, select, insert, func, text
 import models
 from utils.events.event_bus import EventBus
 import datetime
 import math
 from modules.logger.logger import log
+from modules.configuration.config import get_config
 
-#TODO Порефакторить бы
+# TODO Порефакторить бы
+
+
 class BunkerManager:
     def __init__(self) -> None:
         EventBus.subscribe("tcp_ready", self.start)
+        EventBus.add_event("bunkers_updated")
 
     def start(self):
+        print("123456")
         EventBus.subscribe("alumina_load", self.add_load_point)
         EventBus.subscribe("alumina_feed", self.add_feed_point)
 
@@ -34,6 +39,7 @@ class BunkerManager:
         session.add(load)
         session.add(state)
         session.commit()
+        EventBus.invoke("bunkers_updated")
 
     def add_feed_point(self, bunker_id, quantity, session=next(get_session())):
         dt = datetime.datetime.now()
@@ -51,9 +57,11 @@ class BunkerManager:
             bunker_id=bunker_id,
             is_estimate=True
         )
+
         session.add(feed)
         session.add(state)
         session.commit()
+        EventBus.invoke("bunkers_updated")
 
     def get_last_bunker_state(self, bunker_id, session=next(get_session())):
         return session.exec(
@@ -63,7 +71,21 @@ class BunkerManager:
         ).first()
 
     def get_bunker_states(self, session=next(get_session())):
-        with open("app\\modules\\bunker_management\\get_last_states.sql", "r+") as f:
-            res = session.exec(f.read()).all()
-            return res
-        
+        with open("app/modules/bunker_management/get_last_states.sql") as query:
+            return session.exec(
+                text(query.read())
+            ).all()
+
+    def get_bunkers(self, session=next(get_session())):
+        return session.exec(
+            select(models.BunkerModel)
+            .order_by(models.BunkerModel.bunker_id)
+        ).all()
+
+    def get_quantity_info(self, bunker_id, config=get_config(1), session=next(get_session())):
+        return session.exec(
+            select(models.BunkerStateModel)
+            .where(models.BunkerStateModel.bunker_id == bunker_id)
+            .order_by(models.BunkerStateModel.measure_dt.desc())
+            .limit(config.get("qnt_show_window"))
+        ).all()

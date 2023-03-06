@@ -2,7 +2,6 @@ from PyQt5 import QtWidgets, QtCore
 from pyqtgraph import PlotWidget, plot
 import pyqtgraph as pg
 import sys
-from aas_graph import AASGraph
 from random import randint
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -13,12 +12,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.graphWidget = pg.PlotWidget()
         self.setCentralWidget(self.graphWidget)
 
-        self.g = AASGraph()
 
-        self.g.add_rate_point(1, 1)
-        self.g.add_rate_point(2, 2)
-        self.g.add_rate_point(3, 3)
-        self.g.add_rate_point(4, 4)
 
         self.graphWidget.setBackground('w')
 
@@ -39,7 +33,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.timer = QtCore.QTimer()
         self.timer.setInterval(1000)
 
-        self.timer.timeout.connect(self.update_data)
+        self.timer.timeout.connect(lambda: print("DSFSDF"))
         
         self.timer.start(100)
 

@@ -27,8 +27,6 @@ def est_devastation(session=next(get_session()), **kwargs):
         .where(BunkerStateModel.bunker_id == bunker_id)
         .order_by(BunkerStateModel.measure_dt.desc())
     ).first().quantity
-    os.system('cls')
-    print(estimate_value(quantity, feeds, 0))
 
 
 EventBus.subscribe("alumina_feed", est_devastation)

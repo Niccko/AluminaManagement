@@ -26,7 +26,7 @@ sess = None
 
 def init_db():
     global engine, sess
-    engine = create_engine(DATABASE_URL, echo=True)
+    engine = create_engine(DATABASE_URL)
     with engine.connect() as connection:
         create_schema(connection, "cnf")
         create_schema(connection, "ddl")

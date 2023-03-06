@@ -6,22 +6,31 @@ from modules.tcp_interface.tcp_server import TCPServer
 from modules.bunker_management.bunker_manager import BunkerManager
 from modules.configuration import config
 from modules.estimate.estimate import est_devastation
-import threading
+import threading, sys, time
+
+from modules.visualization import MainWindow
+
+from PyQt5 import QtWidgets
 
 
 
-def command_exec():
-    while True:
-        command = input(">")
-        match command:
-            case "shut":
-                server.stop()
-                break
+# def command_exec():
+#     while True:
+#         command = input(">")
+#         match command:
+#             case "shut":
+#                 server.stop()
+#                 break
+
+def main():
+    app = QtWidgets.QApplication(sys.argv)
+    main = MainWindow()
+    main.show()
+    sys.exit(app.exec_())
 
 
-
-manager = BunkerManager()
-
-server = TCPServer()
-threading.Thread(target=server.start).start()
-threading.Thread(target=command_exec).start()
+if __name__ == '__main__':
+    threading.Thread(target=main).start()
+    time.sleep(1)
+    server = TCPServer()
+    #threading.Thread(target=server.start).start()
