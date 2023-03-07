@@ -16,7 +16,6 @@ class BunkerManager:
         EventBus.add_event("bunkers_updated")
 
     def start(self):
-        print("123456")
         EventBus.subscribe("alumina_load", self.add_load_point)
         EventBus.subscribe("alumina_feed", self.add_feed_point)
 
@@ -30,6 +29,12 @@ class BunkerManager:
 
         last_state = self.get_last_bunker_state(bunker_id=bunker_id)
         new_state_quantity = last_state.quantity + quantity if last_state else quantity
+        bunker = self.get_bunker(bunker_id)
+
+        if new_state_quantity > bunker.capacity:
+            new_state_quantity = bunker.capacity
+            log(f"[WARNING] Bunker {bunker_id} is full")
+
         state = models.BunkerStateModel(
             measure_dt=dt,
             quantity=new_state_quantity,
@@ -81,6 +86,12 @@ class BunkerManager:
             select(models.BunkerModel)
             .order_by(models.BunkerModel.bunker_id)
         ).all()
+
+    def get_bunker(self, bunker_id, session=next(get_session())):
+        return session.exec(
+            select(models.BunkerModel)
+            .where(models.BunkerModel.bunker_id == bunker_id)
+        ).first()
 
     def get_quantity_info(self, bunker_id, config=get_config(1), session=next(get_session())):
         return session.exec(
