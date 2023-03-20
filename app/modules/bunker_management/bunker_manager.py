@@ -3,9 +3,9 @@ from sqlmodel import Session, select, insert, func, text
 import models
 from utils.events.event_bus import EventBus
 import datetime
-import math
 from modules.logger.logger import log
-from modules.configuration.config import get_config
+from modules.configuration.config import get_active_config
+
 
 # TODO Порефакторить бы
 
@@ -26,23 +26,7 @@ class BunkerManager:
             bunker_id=bunker_id,
             type_id=type,
             quantity=quantity)
-
-        last_state = self.get_last_bunker_state(bunker_id=bunker_id)
-        new_state_quantity = last_state.quantity + quantity if last_state else quantity
-        bunker = self.get_bunker(bunker_id)
-
-        if new_state_quantity > bunker.capacity:
-            new_state_quantity = bunker.capacity
-            log(f"[WARNING] Bunker {bunker_id} is full")
-
-        state = models.BunkerStateModel(
-            measure_dt=dt,
-            quantity=new_state_quantity,
-            bunker_id=bunker_id,
-            is_estimate=True
-        )
         session.add(load)
-        session.add(state)
         session.commit()
         EventBus.invoke("bunkers_updated")
 
@@ -51,20 +35,7 @@ class BunkerManager:
         feed = models.AluminaFeedModel(feed_dt=dt,
                                        bunker_id=bunker_id,
                                        quantity=quantity)
-        last_state = self.get_last_bunker_state(bunker_id=bunker_id)
-        new_state_quantity = last_state.quantity - quantity if last_state else 0
-        if new_state_quantity <= 0:
-            new_state_quantity = 0
-            log(f"[WARNING] Bunker {bunker_id} is empty")
-        state = models.BunkerStateModel(
-            measure_dt=dt,
-            quantity=new_state_quantity,
-            bunker_id=bunker_id,
-            is_estimate=True
-        )
-
         session.add(feed)
-        session.add(state)
         session.commit()
         EventBus.invoke("bunkers_updated")
 
@@ -75,17 +46,17 @@ class BunkerManager:
             .order_by(models.BunkerStateModel.measure_dt.desc())
         ).first()
 
-    def get_bunker_states(self, session=next(get_session())):
-        with open("app/modules/bunker_management/get_last_states.sql") as query:
+    def get_aas_states(self, session=next(get_session())):
+        with open("resources/get_last_aas_states.sql") as query:
             return session.exec(
                 text(query.read())
             ).all()
 
-    def get_bunkers(self, session=next(get_session())):
-        return session.exec(
-            select(models.BunkerModel)
-            .order_by(models.BunkerModel.bunker_id)
-        ).all()
+    def get_bunkers_states(self, session=next(get_session())):
+        with open("resources/get_last_bunker_states.sql") as query:
+            return session.exec(
+                text(query.read())
+            ).all()
 
     def get_bunker(self, bunker_id, session=next(get_session())):
         return session.exec(
@@ -93,10 +64,13 @@ class BunkerManager:
             .where(models.BunkerModel.bunker_id == bunker_id)
         ).first()
 
-    def get_quantity_info(self, bunker_id, config=get_config(1), session=next(get_session())):
+    def get_quantity_info(self, bunker_id, session=next(get_session())):
+        config = get_active_config()
+        source_id = session.exec(select(models.BunkerModel.input_source_id)
+                                 .where(models.BunkerModel.bunker_id == bunker_id)).first()
         return session.exec(
-            select(models.BunkerStateModel)
-            .where(models.BunkerStateModel.bunker_id == bunker_id)
-            .order_by(models.BunkerStateModel.measure_dt.desc())
+            select(models.Input)
+            .where(models.Input.input_source_id == source_id)
+            .order_by(models.Input.measure_dt.desc())
             .limit(config.get("qnt_show_window"))
         ).all()

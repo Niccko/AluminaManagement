@@ -2,6 +2,7 @@ from .event import Event
 from typing import Dict
 from modules.logger.logger import log
 
+
 class EventBus:
     events: Dict[str, Event] = {}
     unhandled_subs = []
@@ -15,7 +16,6 @@ class EventBus:
             for x in unhandle_match:
                 EventBus.events[name].subscribe(x[1])
                 log(f"[INFO] Resolved unhandled subscription to event [{name}] with handler [{x[1].__name__}]")
-            
 
     @staticmethod
     def subscribe(name, handler):

@@ -3,7 +3,7 @@ from models import LogsModel
 from datetime import datetime
 
 def log(description, session = next(get_session())):
-    #print(description)
+    print(description)
     # log = LogsModel(
     #     log_dt=datetime.now(),
     #     description=description

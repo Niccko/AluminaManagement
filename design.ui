@@ -125,7 +125,7 @@
       <x>1490</x>
       <y>910</y>
       <width>1051</width>
-      <height>471</height>
+      <height>411</height>
      </rect>
     </property>
     <property name="styleSheet">
@@ -136,6 +136,19 @@
     </property>
     <property name="frameShadow">
      <enum>QFrame::Raised</enum>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="btn_editConfig">
+    <property name="geometry">
+     <rect>
+      <x>2320</x>
+      <y>1340</y>
+      <width>221</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Редактирование конфигураций</string>
     </property>
    </widget>
   </widget>

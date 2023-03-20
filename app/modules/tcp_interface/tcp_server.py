@@ -1,38 +1,55 @@
-import socketserver
+import socketserver, socket
 from utils.events.event_bus import EventBus
-import os, json
+import json
+from threading import Thread
 
-class TCPHandler(socketserver.BaseRequestHandler):
+
+def handle(data):
+    data = json.loads(data.strip().decode("utf-8"))
+
+    event_type = data["event_type"]
+    del data["event_type"]
+    print(event_type)
+    match event_type:
+        case "load":
+            EventBus.invoke("alumina_load", **data)
+        case "feed":
+            EventBus.invoke("alumina_feed", **data)
+        case "input":
+            EventBus.invoke("input", **data)
+
+
+def listener(client, address):
+    print("Accepted connection from: ", address)
+    try:
+        while True:
+            data = client.recv(1024)
+            if not data:
+                break
+            else:
+                handle(data)
+                client.sendall(b"0")
+    finally:
+        client.close()
+
+
+host = socket.gethostname()
+port = 9999
+
+s = socket.socket()
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+s.bind(("127.0.0.1", port))
+s.listen(1)
+th = []
+
+
+def serve():
     EventBus.add_event("alumina_load")
     EventBus.add_event("alumina_feed")
-
-    def handle(self): 
-        self.data = self.request.recv(1024).strip().decode("utf-8")
-        self.data = json.loads(self.data)
-        event_type = self.data["event_type"]
-        del self.data["event_type"]
-        match event_type:
-            case "load":
-                EventBus.invoke("alumina_load", **self.data)
-            case "feed":
-                EventBus.invoke("alumina_feed", **self.data)
-        
-        self.request.sendall(bytes("1".encode("utf-8")))
-        
-
-class TCPServer:
-    EventBus.add_event("tcp_ready")
-    socketserver.TCPServer.allow_reuse_address = True
-    def start(self):
-        self.server = None
-        HOST, PORT = "localhost", 9999
-        
-        self.server = socketserver.TCPServer((HOST, PORT), TCPHandler)
-        EventBus.invoke("tcp_ready")
-        self.server.serve_forever()
-
-    def stop(self):
-        self.server.shutdown()
-        self.server.server_close()
-           
-                
+    EventBus.add_event("input")
+    while True:
+        print("Server is listening for connections...")
+        client, address = s.accept()
+        client.send(b"0")
+        th.append(Thread(target=listener, args=(client, address)).start())
+    s.close()
