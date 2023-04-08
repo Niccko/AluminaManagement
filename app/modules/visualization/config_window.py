@@ -14,6 +14,7 @@ class ConfigWindow(QtWidgets.QDialog, config_window_ui.Ui_Dialog):
         self.btn_selectConfig.clicked.connect(self.select_config)
         self.btn_deleteConfig.clicked.connect(self.delete_config)
         self.tbl_existingConfs.cellClicked.connect(lambda row, col: self.select_config_row(row, col))
+        self.tbl_editParams.cellClicked.connect(lambda row, col: self.parameter_clicked(row, col))
 
         self.locked = False
         self.selected_conf = -1
@@ -60,6 +61,10 @@ class ConfigWindow(QtWidgets.QDialog, config_window_ui.Ui_Dialog):
         for item in items:
             entries.append(f"{item}: {items[item]}")
         self.te_infobox.setPlainText("\n".join(entries))
+
+    def parameter_clicked(self, row, col):
+        params = config.get_parameters()
+        self.te_infobox.setPlainText(params[row].description)
 
     def refresh(self):
         self.update_selected_info()

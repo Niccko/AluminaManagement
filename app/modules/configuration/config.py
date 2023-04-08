@@ -1,14 +1,9 @@
 from db import get_session
-from sqlmodel import select, update
+from sqlmodel import select
 import models
 from modules.configuration.utils import form_config
 
 config = None
-
-
-def add_parameter(name, session=next(get_session())):
-    session.add(models.ConfigParameterModel(parameter_name=name))
-    session.commit()
 
 
 def create_configuration(params: dict, name=None, session=next(get_session())):
@@ -37,24 +32,34 @@ def get_parameters(session=next(get_session())):
     return session.exec(statement).all()
 
 
-def get_config(id, session=next(get_session())):
+def get_config(config_id, session=next(get_session())):
     res = session.exec(select(models.ConfigurationModel)
-                       .where(models.ConfigurationModel.configuration_id == id)
+                       .where(models.ConfigurationModel.configuration_id == config_id)
                        ).first()
     return form_config(res) if res else {}
 
 
 def get_active_config(session=next(get_session())):
     res = session.exec(select(models.ConfigurationModel)
-                       .where(models.ConfigurationModel.is_active is True)
-                       ).all()
+                       .where(models.ConfigurationModel.is_active)
+                       ).first()
+
     return form_config(res) if res else {}
 
 
+def get(param_name):
+    global config
+    if not config:
+        config = get_active_config()
+    return config.get(param_name)
+
+
 def select_config(config_id, session=next(get_session())):
+    global config
     for i in session.exec(select(models.ConfigurationModel)).all():
         i.is_active = i.configuration_id == config_id
     session.commit()
+    config = get_active_config()
 
 
 def delete_config(config_id, session=next(get_session())):

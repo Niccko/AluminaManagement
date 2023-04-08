@@ -1,8 +1,8 @@
-"""cnf
+"""init
 
-Revision ID: 8aa031ef979b
-Revises: 18605fbe4d1e
-Create Date: 2023-03-18 17:31:02.327159
+Revision ID: 9346bd628974
+Revises: 
+Create Date: 2023-03-24 19:23:54.997059
 
 """
 from alembic import op
@@ -11,8 +11,8 @@ import sqlmodel
 
 
 # revision identifiers, used by Alembic.
-revision = '8aa031ef979b'
-down_revision = '18605fbe4d1e'
+revision = '9346bd628974'
+down_revision = None
 branch_labels = None
 depends_on = None
 
@@ -49,6 +49,7 @@ def upgrade() -> None:
     )
     op.create_table('logs',
     sa.Column('log_dt', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('log_type', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('description', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.PrimaryKeyConstraint('log_dt'),
     schema='ddl'

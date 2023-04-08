@@ -1,35 +1,25 @@
-from db import init_db
-
-init_db()
-
-from utils.events.event_bus import EventBus
-from modules.tcp_interface.tcp_server import serve
-from modules.bunker_management.bunker_manager import BunkerManager
-from modules.configuration import config
-from modules.estimate.estimate import est_devastation
-import threading, sys, time
-from modules.bunker_management.input_manager import *
-from modules.visualization import MainWindow
+import sys
+import threading
+import time
 
 from PyQt5 import QtWidgets
 
+from modules.tcp_server import serve
+from modules.visualization import MainWindow
 
-# def command_exec():
-#     while True:
-#         command = input(">")
-#         match command:
-#             case "shut":
-#                 server.stop()
-#                 break
 
-def main():
+def main(done_event):
     app = QtWidgets.QApplication(sys.argv)
     main = MainWindow()
     main.show()
-    sys.exit(app.exec_())
+    app.exec_()
+    done_event.set()
+    sys.exit()
 
+
+done = threading.Event()
 
 if __name__ == '__main__':
-    threading.Thread(target=main).start()
+    threading.Thread(target=main, args=[done, ]).start()
     time.sleep(1)
-    threading.Thread(target=serve()).start()
+    threading.Thread(target=serve, args=[done, ]).start()
