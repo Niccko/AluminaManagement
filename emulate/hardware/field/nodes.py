@@ -1,8 +1,10 @@
 from random import randint
 from utils.events.event_bus import EventBus
 from time import time
-EventBus.add_event("alumina_load")
-EventBus.add_event("alumina_feed")
+
+EventBus.add_event("load")
+EventBus.add_event("feed")
+
 
 class AASBunker:
     def __init__(self, id, capacity, source):
@@ -12,18 +14,23 @@ class AASBunker:
         self.time = 0
         self.source = source
         self.active = False
+        self.feed_delays = [3, 4, 5, 1, 2]
+        self.current_feed_state = 0
 
     def tick(self):
         if not self.active:
             return
         self.time += 1
+        if self.time % 15 == 0:
+            self.current_feed_state += 1
+            self.current_feed_state %= len(self.feed_delays)
         if self.level < 50:
             self.source.give(self)
-        if self.time % randint(1,5) == 0 and self.level>=25:
-            EventBus.invoke("alumina_feed", bunker_id = self.id, quantity = 25)
+        if self.time % self.feed_delays[self.current_feed_state] + randint(-2, 2) == 0 and self.level >= 25:
+            EventBus.invoke("alumina_feed", bunker_id=self.id, quantity=25)
             self.level -= 25
             self.level = max(0, self.level)
-        
+
 
 class MainBunker():
     def __init__(self, id, capacity):
@@ -38,12 +45,12 @@ class MainBunker():
             aas.level = min(aas.level, aas.capacity)
             self.level -= 500
             self.level = max(0, self.level)
-            EventBus.invoke("alumina_load", bunker_id = aas.id, quantity = 500, source_bunker_id=self.id, type = 1)
-            EventBus.invoke("alumina_feed", bunker_id = self.id, quantity = 500)
-    
+            EventBus.invoke("alumina_load", bunker_id=aas.id, quantity=500, source_bunker_id=self.id, type=1)
+            EventBus.invoke("alumina_feed", bunker_id=self.id, quantity=500)
+
     def restore(self):
         self.level = self.capacity
-        EventBus.invoke("alumina_load", bunker_id = self.id, quantity = self.capacity, source_bunker_id=None, type = 1)
+        EventBus.invoke("alumina_load", bunker_id=self.id, quantity=self.capacity, source_bunker_id=None, type=1)
 
 
 class Centriguge():

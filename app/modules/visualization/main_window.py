@@ -8,8 +8,10 @@ from modules.visualization.bunker_widget import BunkerWidget
 from modules.visualization.graph_widget import QuantityGraph
 from datetime import datetime, timedelta
 from modules.visualization.config_window import ConfigWindow
+from modules.visualization.process_window import ProcessWindow
 from modules.estimate import est_devastation
 from modules.process_management import get_current_process
+import global_vars
 
 
 class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
@@ -17,6 +19,12 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
     def __init__(self, *args, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
         self.setupUi(self)
+
+        self.process_window = ProcessWindow()
+        self.process_window.move(self.width()+400, 400)
+        print(self.pos().x())
+        print(self.pos().y())
+        self.process_window.show()
 
         self.selected_bunker = None
         self.last_updated = 0
@@ -43,10 +51,14 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
 
         self.show()
 
+    def moveEvent(self, event) -> None:
+        super(MainWindow, self).moveEvent(event)
+
     def redraw(self, force=False):
+        time_remaining = 0
         if not force and time.time() - self.last_updated < 0.3:
             return
-
+        self.process_window.redraw()
         process = get_current_process()
         if process:
             self.lbl_processId_value.setText(str(process.process_id))
@@ -58,22 +70,36 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
         self.update_event_tables()
 
         if self.selected_bunker:
-            time_remaining = round(est_devastation(bunker_id=self.selected_bunker), 2)
-            end_time = (datetime.now() + timedelta(seconds=time_remaining)).strftime("%Y-%m-%d %H:%M:%S")
-            self.lbl_timeRemainig_value.setText(f"{str(time_remaining)} ({end_time})")
-            self.lbl_bunkerId_value.setText(str(self.selected_bunker))
+            bunker = bunker_manager.get_bunker(self.selected_bunker)
+            bunker_state = bunker_manager.get_last_bunker_state(self.selected_bunker)
+            last_feed = bunker_manager.get_last_alumina_move("FEED", bunker_id=bunker.bunker_id)
+            rem = est_devastation(bunker_id=self.selected_bunker)
+            if rem:
+                time_remaining = round(rem, 2)
+                end_time = (bunker_state.measure_dt + timedelta(seconds=time_remaining)).strftime("%Y-%m-%d %H:%M:%S")
+                self.lbl_timeRemainig_value.setText(f"{str(time_remaining)} сек ({end_time})")
+                self.lbl_bunkerId_value.setText(str(self.selected_bunker))
 
             last_load = bunker_manager.get_last_alumina_move("LOAD", bunker_id=self.selected_bunker)
             last_feed = bunker_manager.get_last_alumina_move("FEED", bunker_id=self.selected_bunker)
             if last_feed:
-                self.lbl_lastFeed_value.setText(
-                    f'{str(last_feed.feed_dt.strftime("%Y-%m-%d %H:%M:%S"))} ({str(last_feed.quantity)})')
+                feed_dttm = str(last_feed.feed_dt.strftime("%Y-%m-%d %H:%M:%S"))
+                quantity = str(int(last_feed.quantity))
+                self.lbl_lastFeed_value.setText(f'{feed_dttm} ({quantity} кг)')
             if last_load:
-                self.lbl_lastLoad_value.setText(
-                    f'{str(last_load.load_dt.strftime("%Y-%m-%d %H:%M:%S"))} ({str(last_load.quantity)}) - source: {last_load.source_bunker_id}')
+                load_dttm = str(last_load.load_dt.strftime("%Y-%m-%d %H:%M:%S"))
+                quantity = str(int(last_load.quantity))
+                source = last_load.source_bunker_id
+                self.lbl_lastLoad_value.setText(f'{load_dttm} ({quantity} кг) - source: {source}')
             self.quantity_graph.graphWidget.clear()
             self.quantity_graph.draw_prediction(self.selected_bunker, time_remaining)
             self.quantity_graph.draw(self.selected_bunker)
+
+            self.lbl_capacity_value.setText(f'{str(int(bunker.capacity))} кг')
+            self.lbl_quantity_value.setText(f'{str(int(bunker_state.quantity))} кг')
+            consumption = bunker_manager.get_mean_consumption(self.selected_bunker)
+            self.lbl_dayCons_value.setText(str(consumption.get("day")))
+            self.lbl_monthCons_value.setText(str(consumption.get("month")))
 
         self.update()
         self.last_updated = time.time()
@@ -96,6 +122,10 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
         self.config_window = ConfigWindow()
         self.config_window.show()
 
+    def open_process_window(self):
+        self.process_window = ProcessWindow()
+        self.process_window.show()
+
     def update_selected(self, bunker_id):
         self.selected_bunker = bunker_id
         self.main_panel.setEnabled(self.selected_bunker is not None)
@@ -104,7 +134,7 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
         self.main_panel.setVisible(self.selected_bunker is not None)
         self.lbl_main_bunkers.setVisible(self.selected_bunker is None)
         self.close_bunker.setVisible(self.selected_bunker is not None)
-        self.frm_common_info.setVisible(self.selected_bunker is None)
+        # self.frm_common_info.setVisible(self.selected_bunker is None)
 
         for child_widget in self.gridLayoutWidget.findChildren(QtWidgets.QWidget):
             child_widget.setVisible(self.selected_bunker is not None)

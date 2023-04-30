@@ -4,7 +4,7 @@ import time
 
 from PyQt5 import QtWidgets
 
-from modules.tcp_server import serve
+from modules.tcp.tcp_server import serve
 from modules.visualization import MainWindow
 
 

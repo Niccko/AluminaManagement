@@ -7,6 +7,17 @@ from modules.logger import warn
 
 process_id = None
 
+load_queue = []
+
+
+def get_load_queue():
+    return load_queue
+
+
+def set_load_queue(queue):
+    global load_queue
+    load_queue = queue
+
 
 def start_process(session=next(get_session())):
     global process_id

@@ -5,12 +5,14 @@ from sqlalchemy.orm import sessionmaker
 from sqlmodel import create_engine, Session
 from models import *
 from dotenv import load_dotenv
+import global_vars
 
 load_dotenv()
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 Base = declarative_base()
-engine = create_engine(DATABASE_URL)
+engine = create_engine(DATABASE_URL, pool_size=100)
+global_vars.db_connected = True
 
 
 def create_schema(conn, name):

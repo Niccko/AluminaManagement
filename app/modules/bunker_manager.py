@@ -1,11 +1,12 @@
 from db import get_session
-from sqlmodel import select, text, Session
+from sqlmodel import select, text, Session, func
 import models
 from typing import List, Optional
 from utils.events.event_bus import EventBus
 import datetime
-from modules.process_management import get_current_process_id
+from modules.process_management import get_current_process_id, get_load_queue, set_load_queue
 from typing import List
+from modules.tcp.tcp_server import get_hardware_client
 
 
 # --- Обработчики входящих сигналов
@@ -18,7 +19,6 @@ def add_load_point(load_dt, bunker_id, quantity, type, source_bunker_id, session
         quantity=quantity,
         process_id=process_id,
         source_bunker_id=source_bunker_id)
-
     session.add(load)
     session.commit()
     EventBus.invoke("bunkers_updated")
@@ -33,7 +33,7 @@ def add_feed_point(feed_dt, bunker_id, quantity, session=next(get_session())):
         process_id=process_id)
     EventBus.invoke("bunkers_updated")
     source_id = get_source_bunker_id(bunker_id)
-    if not source_id:
+    if not source_id and source_id != 0:
         return
     estimate_quantity(source_id)
     session.add(feed)
@@ -43,7 +43,6 @@ def add_feed_point(feed_dt, bunker_id, quantity, session=next(get_session())):
 def update_state(measure_dt, data, session=next(get_session())):
     process_id = get_current_process_id()
     for sensor in data:
-
         input_source_id = sensor["input_source_id"]
         value = sensor["value"]
         bunker = session.exec(
@@ -172,11 +171,11 @@ def get_bunker(bunker_id, session=next(get_session())):
     ).first()
 
 
-def get_bunkers(aas=False, session=next(get_session())):
+def get_bunkers(aas=None, session=next(get_session())):
     return session.exec(
         select(models.BunkerModel)
-        .where(models.BunkerModel.is_aas == aas)
-    ).first()
+        .where(aas is None or models.BunkerModel.is_aas == aas)
+    ).all()
 
 
 # include_est - включать ли оценочные значения (0 - нет, 1-да, 2-только оценочные)
@@ -194,7 +193,24 @@ def get_quantity_info(bunker_id: int,
     return session.exec(query.order_by(models.BunkerStateModel.measure_dt.desc()).limit(window_size)).all()
 
 
+def get_mean_consumption(bunker_id: int = None, session: Optional[Session] = next(get_session())):
+    process_id = get_current_process_id()
+    query = select(func.sum(models.AluminaFeedModel.quantity)) \
+        .where(not bunker_id or models.AluminaFeedModel.bunker_id == bunker_id)
+    month_consumption = session.exec(
+        query.where(models.AluminaFeedModel.feed_dt > datetime.datetime.now() - datetime.timedelta(days=30))
+    ).first()
+
+    day_consumption = session.exec(
+        query.where(models.AluminaFeedModel.feed_dt > datetime.datetime.now() - datetime.timedelta(days=1))
+    ).first()
+    return {
+        "month": int(month_consumption if month_consumption else 0),
+        "day": int(day_consumption if day_consumption else 0)
+    }
+
+
 EventBus.add_event("bunkers_updated")
-EventBus.subscribe("alumina_load", add_load_point)
-EventBus.subscribe("alumina_feed", add_feed_point)
+EventBus.subscribe("load", add_load_point)
+EventBus.subscribe("feed", add_feed_point)
 EventBus.subscribe("input", update_state)
