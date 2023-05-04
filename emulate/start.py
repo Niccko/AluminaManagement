@@ -86,14 +86,22 @@ def data_send(self):
 
 def message_handler(self):
     while True:
-        try:
-            msg = self.client.recv(1024).decode('utf-8')
-            if msg:
-                print(msg)
-        except Exception as e:
-            print(e)
-            self.client.close()
-            break
+
+        msg = self.client.recv(1024).decode('utf-8')
+        if not msg:
+            continue
+        for chunk in msg.split("#"):
+            print(chunk)
+            if not chunk:
+                continue
+            data = json.loads(chunk)
+            if data.get("event_type") == "aas_load":
+                data = data.get("data")
+                a = aas[data.get("bunker_id") - len(bunkers) - 1]
+                print(f"=== LOADING TO AAS {data.get('bunker_id')} ===")
+                source = bunkers[data.get("source_silage_id") - 1]
+                source.give(a)
+                print(f"=== DONE LOADING TO AAS {data.get('bunker_id')} ===")
 
 
 def init(self):
@@ -102,7 +110,7 @@ def init(self):
     EventBus.add_event("alumina_feed")
     self.client, recv_thread = tcp.start_client(message_handler, args=(self,))
     recv_thread.start()
-    init_topology(4, 20)
+    init_topology(4, 60)
     tcp.write(self.client, json.dumps({"event_type": "process_start"}))
     time.sleep(0.1)
     tcp.write(self.client, json.dumps({"event_type": "init_topology", "data": form_topology_description()}))

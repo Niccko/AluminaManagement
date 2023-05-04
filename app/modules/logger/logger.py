@@ -1,8 +1,10 @@
+import models
 from db import get_session
 from models import LogsModel
 from datetime import datetime
+from sqlmodel import select
 
-save_logs = False
+save_logs = True
 show_info = False
 
 
@@ -28,7 +30,17 @@ def log(log_type, message, session=next(get_session())):
     log_obj = LogsModel(
         log_dt=datetime.now(),
         log_type=log_type,
-        description=log_type
+        description=message
     )
     session.add(log_obj)
     session.commit()
+
+
+def get_logs(date_start, date_end, include, session=next(get_session())):
+    print(include)
+    query = select(models.LogsModel) \
+        .where(models.LogsModel.log_dt > date_start) \
+        .where(models.LogsModel.log_dt < date_end) \
+        .where(models.LogsModel.log_type.in_(include)) \
+        .order_by(models.LogsModel.log_dt.desc())
+    return session.exec(query).all()

@@ -1,3 +1,4 @@
+import models
 from models import *
 from db import get_session
 from datetime import datetime
@@ -71,27 +72,40 @@ def init_topology(data, session=next(get_session())):
     if not topology_updated(data):
         return
     warn(f"Updating topology: {data}")
-    session.exec(delete(BunkerStateModel))
-    session.exec(delete(AluminaFeedModel))
-    session.exec(delete(AluminaLoadModel))
-    session.exec(delete(BunkerModel))
-    session.exec(delete(InputSource))
-    session.commit()
 
     for sensor in data.get("sensors"):
-        session.add(InputSource(
-            input_source_id=sensor["input_source_id"],
-            data_type=sensor["data_type"],
-            input_name=sensor["input_name"]
-        ))
+        if not session.get(models.InputSource, sensor["input_source_id"]):
+            session.add(InputSource(
+                input_source_id=sensor["input_source_id"],
+                data_type=sensor["data_type"],
+                input_name=sensor["input_name"]
+            ))
     session.commit()
     for bunker in data.get("bunkers"):
-        session.add(BunkerModel(
-            bunker_id=bunker["bunker_id"],
-            is_aas=bunker["is_aas"],
-            capacity=bunker["capacity"],
-            input_source_id=bunker["input_source_id"]
-        ))
+        b = session.get(models.BunkerModel, bunker["bunker_id"])
+        if b:
+            b.capacity = bunker["capacity"]
+            b.is_aas = bunker["is_aas"]
+            b.input_source_id = bunker["input_source_id"]
+            b.deleted_flg = False
+
+            warn(f"Updated bunker {b.bunker_id}")
+        else:
+            b = models.BunkerModel(
+                bunker_id=bunker["bunker_id"],
+                capacity=bunker["capacity"],
+                is_aas=bunker["is_aas"],
+                input_source_id=bunker["input_source_id"],
+                deleted_flg=False
+            )
+        session.add(b)
+    deleted = session.exec(select(models.BunkerModel)).all()
+    top_ids = list([x["bunker_id"] for x in data.get("bunkers")])
+    deleted = [y for y in deleted if y.bunker_id not in top_ids]
+    for d in deleted:
+        d.deleted_flg = True
+        session.add(d)
+        warn(f"Deleted bunker {d.bunker_id}")
     session.commit()
     warn("Topology updated")
 

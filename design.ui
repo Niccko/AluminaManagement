@@ -625,12 +625,24 @@
     </property>
     <addaction name="btn_editConfig"/>
    </widget>
+   <widget class="QMenu" name="menu_2">
+    <property name="title">
+     <string>Логи</string>
+    </property>
+    <addaction name="btn_openLogs"/>
+   </widget>
    <addaction name="menu"/>
+   <addaction name="menu_2"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="btn_editConfig">
    <property name="text">
     <string>Настройки</string>
+   </property>
+  </action>
+  <action name="btn_openLogs">
+   <property name="text">
+    <string>Логи</string>
    </property>
   </action>
  </widget>

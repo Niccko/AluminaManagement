@@ -16,6 +16,7 @@ class AASBunker:
         self.active = False
         self.feed_delays = [3, 4, 5, 1, 2]
         self.current_feed_state = 0
+        self.source.give(self)
 
     def tick(self):
         if not self.active:
@@ -24,7 +25,7 @@ class AASBunker:
         if self.time % 15 == 0:
             self.current_feed_state += 1
             self.current_feed_state %= len(self.feed_delays)
-        if self.level < 50:
+        if self.time == 4:
             self.source.give(self)
         if self.time % self.feed_delays[self.current_feed_state] + randint(-2, 2) == 0 and self.level >= 25:
             EventBus.invoke("alumina_feed", bunker_id=self.id, quantity=25)

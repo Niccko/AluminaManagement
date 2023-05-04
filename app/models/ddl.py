@@ -35,6 +35,7 @@ class BunkerModel(SQLModel, table=True):
     is_aas: bool = Field(default=True)
     capacity: float = Field(default=0)
     input_source_id: int = Field(foreign_key="ddl.input_source.input_source_id")
+    deleted_flg: bool = Field(default=False, nullable=True)
     input_source: InputSource = Relationship()
 
 
@@ -87,6 +88,7 @@ class AluminaFeedModel(SQLModel, table=True):
 class LogsModel(SQLModel, table=True):
     __tablename__ = "logs"
     __table_args__ = table_args
-    log_dt: datetime.datetime = Field(sa_column=sa.Column(sa.DateTime(timezone=True), nullable=False, primary_key=True))
+    log_id: Optional[int] = Field(default=None, primary_key=True)
+    log_dt: datetime.datetime = Field(sa_column=sa.Column(sa.DateTime(timezone=True), nullable=False))
     log_type: Optional[str] = Field(default=None)
     description: Optional[str] = Field(default=None)

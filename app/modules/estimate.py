@@ -12,6 +12,8 @@ import modules.configuration as config
 import os
 from modules.tcp.tcp_server import get_hardware_client
 
+load_queue = []
+
 
 def estimate_value(est_point, rates, value):
     mean_rate = statistics.mean(rates)
@@ -49,7 +51,7 @@ def est_devastation(session=next(get_session()), **kwargs):
     quantity = session.exec(
         select(BunkerStateModel)
         .where(BunkerStateModel.bunker_id == bunker_id)
-        .where(BunkerStateModel.measure_dt > last_load)
+        .where(last_load and BunkerStateModel.measure_dt > last_load)
         .order_by(BunkerStateModel.measure_dt.desc())
     ).all()
     if not quantity:
@@ -91,6 +93,7 @@ def est_devastation_all():
 
 
 def check_devastation():
+    global load_queue
     rem = est_devastation_all()
     res = [
         x for x in rem if
@@ -99,6 +102,20 @@ def check_devastation():
         and bunker_manager.get_last_bunker_state(x.get("bunker_id")).quantity < float(
             config.get("soft_critical_quantity"))
     ]
-    for r in res:
-        get_hardware_client().sendall(json.dumps(r).encode("utf-8"))
-    return res
+
+    incr = [x for x in res if x.get("bunker_id") not in map(lambda y: y.get("bunker_id"), load_queue)]
+    load_queue = sorted(res, key=lambda x: x.get("rem_time"))
+    for r in incr:
+        msg = {
+            "event_type": "aas_load",
+            "data": {
+                "bunker_id": r.get("bunker_id"),
+                "source_silage_id": bunker_manager.get_source_bunker_id(r.get("bunker_id")),
+                "remaining_time": r.get("rem_time"),
+
+            }
+        }
+        msg = json.dumps(msg) + "#"
+        get_hardware_client().sendall(msg.encode("utf-8"))
+    return load_queue
+

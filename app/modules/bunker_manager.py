@@ -175,6 +175,7 @@ def get_bunkers(aas=None, session=next(get_session())):
     return session.exec(
         select(models.BunkerModel)
         .where(aas is None or models.BunkerModel.is_aas == aas)
+        .where(models.BunkerModel.deleted_flg == False)
     ).all()
 
 

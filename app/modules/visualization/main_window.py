@@ -8,6 +8,7 @@ from modules.visualization.bunker_widget import BunkerWidget
 from modules.visualization.graph_widget import QuantityGraph
 from datetime import datetime, timedelta
 from modules.visualization.config_window import ConfigWindow
+from modules.visualization.log_window import LogWindow
 from modules.visualization.process_window import ProcessWindow
 from modules.estimate import est_devastation
 from modules.process_management import get_current_process
@@ -34,6 +35,7 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
         self.big_bunker_widget = BunkerWidget(self.lbl_main_bunkers, 2)
 
         self.btn_editConfig.triggered.connect(self.open_config_window)
+        self.btn_openLogs.triggered.connect(self.open_logs_window)
         self.close_bunker.clicked.connect(lambda: self.update_selected(None))
         self.update_selected(None)
 
@@ -72,7 +74,6 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
         if self.selected_bunker:
             bunker = bunker_manager.get_bunker(self.selected_bunker)
             bunker_state = bunker_manager.get_last_bunker_state(self.selected_bunker)
-            last_feed = bunker_manager.get_last_alumina_move("FEED", bunker_id=bunker.bunker_id)
             rem = est_devastation(bunker_id=self.selected_bunker)
             if rem:
                 time_remaining = round(rem, 2)
@@ -121,6 +122,10 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
     def open_config_window(self):
         self.config_window = ConfigWindow()
         self.config_window.show()
+
+    def open_logs_window(self):
+        self.logs_window = LogWindow()
+        self.logs_window.show()
 
     def open_process_window(self):
         self.process_window = ProcessWindow()
