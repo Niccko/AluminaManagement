@@ -22,9 +22,7 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
         self.setupUi(self)
 
         self.process_window = ProcessWindow()
-        self.process_window.move(self.width()+400, 400)
-        print(self.pos().x())
-        print(self.pos().y())
+        #self.process_window.move(self.width()+400, 400)
         self.process_window.show()
 
         self.selected_bunker = None

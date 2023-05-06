@@ -26,3 +26,5 @@ class ProcessWindow(QtWidgets.QMainWindow, process.Ui_MainWindow):
         for i, element in enumerate(load_queue):
             self.tbl_loadQueue.insertRow(i)
             self.tbl_loadQueue.setItem(i, 0, Qt.QTableWidgetItem(str(element["bunker_id"])))
+            self.tbl_loadQueue.setItem(i, 1, Qt.QTableWidgetItem(str(element["rem_time"])))
+            self.tbl_loadQueue.setItem(i, 2, Qt.QTableWidgetItem(str(element["source_silage_id"])))

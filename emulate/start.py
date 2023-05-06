@@ -99,6 +99,8 @@ def message_handler(self):
                 data = data.get("data")
                 a = aas[data.get("bunker_id") - len(bunkers) - 1]
                 print(f"=== LOADING TO AAS {data.get('bunker_id')} ===")
+                if not data.get("source_silage_id"):
+                    continue
                 source = bunkers[data.get("source_silage_id") - 1]
                 source.give(a)
                 print(f"=== DONE LOADING TO AAS {data.get('bunker_id')} ===")

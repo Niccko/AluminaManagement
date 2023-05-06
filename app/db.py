@@ -10,8 +10,9 @@ import global_vars
 load_dotenv()
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
+print(DATABASE_URL)
 Base = declarative_base()
-engine = create_engine(DATABASE_URL, pool_size=100)
+engine = create_engine(DATABASE_URL, pool_size=100, pool_recycle=True)
 global_vars.db_connected = True
 
 
@@ -28,7 +29,7 @@ def to_dict(self) -> dict:
 def get_session():
     global sess
     try:
-        session = Session(bind=engine)
+        session = Session(bind=engine, autoflush=False)
         yield session
     finally:
         session.close()

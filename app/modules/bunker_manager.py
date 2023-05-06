@@ -81,15 +81,21 @@ def estimate_quantity(bunker_id, session=next(get_session())):
         ).all()
     if not feed_sum[0][0]:
         return
-    new_state = models.BunkerStateModel(
-        measure_dt=datetime.datetime.now(),
-        bunker_id=bunker_id,
-        quantity=last_state.quantity - feed_sum[0][0],
-        is_estimate=True,
-        process_id=process_id
-    )
-    session.add(new_state)
-    session.commit()
+    dttm = datetime.datetime.now()
+    if not session.exec(
+            select(models.BunkerStateModel)
+                    .where(models.BunkerStateModel.measure_dt == dttm)
+                    .where(models.BunkerStateModel.bunker_id == bunker_id)
+    ).first():
+        new_state = models.BunkerStateModel(
+            measure_dt=datetime.datetime.now(),
+            bunker_id=bunker_id,
+            quantity=last_state.quantity - feed_sum[0][0],
+            is_estimate=True,
+            process_id=process_id
+        )
+        session.add(new_state)
+        session.commit()
 
 
 def get_last_load_time(bunker_id):
@@ -147,6 +153,10 @@ def get_bunkers_states(is_aas, include_est=0, session=next(get_session())):
             text(query_str)
         ).all()
 
+def get_silage_by_alumina_type(alumina_type_id):
+    silages = get_bunkers(False)
+
+
 
 def get_last_bunker_state(bunker_id: int,
                           until: Optional[datetime.datetime] = None,
@@ -192,6 +202,15 @@ def get_quantity_info(bunker_id: int,
         .where(models.BunkerStateModel.is_estimate == (include_est == 2))
 
     return session.exec(query.order_by(models.BunkerStateModel.measure_dt.desc()).limit(window_size)).all()
+
+
+def get_alumina_type(bunker_id):
+    session = next(get_session())
+    last_load = get_last_alumina_move("LOAD", bunker_id=bunker_id)
+    return session.exec(
+        select(models.AluminaTypeModel)
+        .where(models.AluminaTypeModel.type_id == last_load.type_id)
+    ).first()
 
 
 def get_mean_consumption(bunker_id: int = None, session: Optional[Session] = next(get_session())):

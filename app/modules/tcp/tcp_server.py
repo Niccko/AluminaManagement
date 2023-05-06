@@ -14,6 +14,8 @@ def handle(data):
         data = json.loads(chunk)
         event_type = data["event_type"]
         del data["event_type"]
+        if event_type == "input":
+            print(data)
         EventBus.invoke(event_type, **data)
 
 

@@ -96,7 +96,11 @@ def check_devastation():
     global load_queue
     rem = est_devastation_all()
     res = [
-        x for x in rem if
+        {
+            **x,
+            "source_silage_id": bunker_manager.get_source_bunker_id(x.get("bunker_id"))
+        }
+        for x in rem if
         x.get("rem_time")
         and x.get("rem_time") < float(config.get("critical_time_threshold"))
         and bunker_manager.get_last_bunker_state(x.get("bunker_id")).quantity < float(
@@ -112,10 +116,8 @@ def check_devastation():
                 "bunker_id": r.get("bunker_id"),
                 "source_silage_id": bunker_manager.get_source_bunker_id(r.get("bunker_id")),
                 "remaining_time": r.get("rem_time"),
-
             }
         }
         msg = json.dumps(msg) + "#"
         get_hardware_client().sendall(msg.encode("utf-8"))
     return load_queue
-
